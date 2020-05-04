@@ -400,15 +400,33 @@ function yourls_get_plugin_data( $file ) {
 	return $plugin_data;
 }
 
-// Include active plugins
+/**
+ * Include active plugins
+ *
+ * This function includes every 'YOURLS_PLUGINDIR/plugin_name/plugin.php' found in option 'active_plugins'
+ * It will return a diagnosis array with the following keys:
+ *    (bool)'loaded' : true if plugin(s) loaded, false otherwise
+ *    (string)'info' : extra information
+ *
+ * @since 1.5
+ * @return array    Array('loaded' => bool, 'info' => string)
+ */
 function yourls_load_plugins() {
 	// Don't load plugins when installing or updating
-	if( yourls_is_installing() OR yourls_is_upgrading() OR !yourls_is_installed() )
-		return;
+	if( yourls_is_installing() OR yourls_is_upgrading() OR !yourls_is_installed() ) {
+		return array(
+            'loaded' => false,
+            'info' => 'install/upgrade'
+        );
+    }
 
 	$active_plugins = yourls_get_option( 'active_plugins' );
-	if( false === $active_plugins )
-		return;
+	if( false === $active_plugins OR $active_plugins === array() ) {
+		return array(
+            'loaded' => false,
+            'info' => 'no active plugin'
+        );
+    }
 
 	global $ydb;
 	$plugins = array();
@@ -421,7 +439,9 @@ function yourls_load_plugins() {
 		}
 	}
 
+    // Replace active plugin list with list of plugins we just activated
     $ydb->set_plugins($plugins);
+    $info = count($plugins) . ' activated';
 
 	// $active_plugins should be empty now, if not, a plugin could not be find: remove it
 	if( count( $active_plugins ) ) {
@@ -429,7 +449,14 @@ function yourls_load_plugins() {
 		$message = yourls_n( 'Could not find and deactivated plugin :', 'Could not find and deactivated plugins :', count( $active_plugins ) );
 		$missing = '<strong>'.join( '</strong>, <strong>', $active_plugins ).'</strong>';
 		yourls_add_notice( $message .' '. $missing );
+
+		$info .= ', ' . count($active_plugins) . ' removed';
 	}
+
+    return array(
+        'loaded' => true,
+        'info' => $info
+    );
 }
 
 /**
@@ -622,4 +649,96 @@ function yourls_plugins_sort_callback( $plugin_a, $plugin_b ) {
 		return ( $a < $b ) ? 1 : -1;
 	else
 		return ( $a < $b ) ? -1 : 1;
+}
+
+/**
+ * Shutdown function, runs just before PHP shuts down execution. Stolen from WP
+ *
+ * This function is automatically tied to the script execution end at startup time, see
+ * var $actions->register_shutdown in includes/Config/Init.php
+ *
+ * You can use this function to fire one or several actions when the PHP execution ends.
+ * Example of use:
+ *   yourls_add_action('shutdown', 'my_plugin_action_this');
+ *   yourls_add_action('shutdown', 'my_plugin_action_that');
+ *   // functions my_plugin_action_this() and my_plugin_action_that() will be triggered
+ *   // after YOURLS is completely executed
+ *
+ * @since 1.5.1
+ * @return void
+ */
+function yourls_shutdown() {
+    yourls_do_action( 'shutdown' );
+}
+
+/**
+ * Returns true.
+ *
+ * Useful for returning true to filters easily.
+ *
+ * @since 1.7.1
+ * @return bool True.
+ */
+function yourls_return_true() {
+    return true;
+}
+
+/**
+ * Returns false.
+ *
+ * Useful for returning false to filters easily.
+ *
+ * @since 1.7.1
+ * @return bool False.
+ */
+function yourls_return_false() {
+    return false;
+}
+
+/**
+ * Returns 0.
+ *
+ * Useful for returning 0 to filters easily.
+ *
+ * @since 1.7.1
+ * @return int 0.
+ */
+function yourls_return_zero() {
+    return 0;
+}
+
+/**
+ * Returns an empty array.
+ *
+ * Useful for returning an empty array to filters easily.
+ *
+ * @since 1.7.1
+ * @return array Empty array.
+ */
+function yourls_return_empty_array() {
+    return array();
+}
+
+/**
+ * Returns null.
+ *
+ * Useful for returning null to filters easily.
+ *
+ * @since 1.7.1
+ * @return null Null value.
+ */
+function yourls_return_null() {
+    return null;
+}
+
+/**
+ * Returns an empty string.
+ *
+ * Useful for returning an empty string to filters easily.
+ *
+ * @since 1.7.1
+ * @return string Empty string.
+ */
+function yourls_return_empty_string() {
+    return '';
 }
